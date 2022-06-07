@@ -93,8 +93,8 @@ namespace xk
 
         template<size_t Size>
             requires(Extent == std::dynamic_extent || Extent == Size)
-        span_tuple(Ty (&...elm)[Extent]) :
-            base(std::forward_as_tuple(elm...), Extent)
+        span_tuple(Ty (&...elm)[Size]) :
+            base(std::forward_as_tuple(elm...), Size)
         {
 
         }

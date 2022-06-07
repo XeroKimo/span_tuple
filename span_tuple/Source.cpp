@@ -9,10 +9,10 @@ int main()
     int arr[4] = {};
     xk::span_tuple<4, int, float> span(a1, a2);
 
-    int* data = span.data<0>();
+    int* data = get<0>(span.data());
     std::tuple<int*, float*> data2 = span.data<0, 1>();
 
-    xk::span_tuple<4, int> span3 = xk::get<0>(span);
+    xk::span_tuple<4, int> span3 = get<0>(span);
     xk::span_tuple<4, int> span2(a1);
     //xk::span_tuple<4, int> span3(ar, 4);
 
