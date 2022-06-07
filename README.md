@@ -8,5 +8,5 @@ An extention to span. If span's intent is to be a non-owning range of one array-
 - Implement range based and iterator based constructors
 - Remove dependance on internal names from MSVCs std::span implementation
 - Implement span_tuple's iterator
-- Implement begin(), end(), front(), back() and operator\[\]()
+- Implement begin(), end(), front(), back() and operator\[\]() and other missing interfaces
 - Create vcpkg package?
