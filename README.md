@@ -13,7 +13,9 @@ Where all three arrays has the same size which was passed in as the first parame
 ```c++
 void Foo(xk::span_tuple<std::dynamic_extent, T, U, V> spans, int* someUnrelatedPointer);
 ```
-as it better expresses the intent in the code. We can decompose the the spans by doing the following
+as it better expresses the intent in the code. 
+
+We can decompose the the spans by doing the following
 ```c++
 void Foo(xk::span_tuple<std::dynamic_extent, T, U, V> spans, int* someUnrelatedPointer)
 {
@@ -22,7 +24,8 @@ void Foo(xk::span_tuple<std::dynamic_extent, T, U, V> spans, int* someUnrelatedP
   std::span<V> spanOne = xk::get<2>(spans);
 }
 ```
-and beyond that, will work exactly the same as usual. You can get the start of each span in the following ways
+
+You can get the start of each span in the following ways
 ```c++
 xk::span_tuple<std::dynamic_extent, T, U, V> spans;
 get<0>(spans.data()); //returns T*;
@@ -39,6 +42,8 @@ xk::span_tuple<std::dynamic_extent, T, U, V> spans;
 std::tuple<T&, U&, V&> elements = spans[3];
 std::tuple<T&, U&, V&> elementsBegin = spans.begin();
 std::tuple<T&, U&, V&> elementsEnd = spans.end();
+T& tBegin = spans.begin<0>();
+U& uBegin = spans.begin<U>(); //Only works if there is no duplicate type just like a tuple
 ```
 Decompose all spans using structured bindings
 ```c++
