@@ -47,9 +47,11 @@ int main()
         }
     }
 
-    //for(std::tuple<int&, float&> r : span)
+    auto [ispan, fspan] = span;
+    std::tuple<int*, float*> t;
+    //for(auto r : span)
     //{
-
+    //    //std::cout << r << " ";
     //}
 
 

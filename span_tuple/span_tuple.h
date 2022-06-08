@@ -438,3 +438,18 @@ namespace xk
         return std::span<std::tuple_element_t<Index, typename span_tuple<First, Extent, Ty...>::value_type>, Extent>(get<Index>(span.data()), span.size());
     }
 }
+
+namespace std
+{
+    template<class First, size_t Extent, class... Others>
+    struct tuple_size<xk::span_tuple<First, Extent, Others...>> : std::integral_constant<size_t, sizeof...(Others) + 1>
+    {
+
+    };
+
+    template<size_t Index, class First, size_t Extent, class... Others>
+    struct tuple_element<Index, xk::span_tuple<First, Extent, Others...>>
+    {
+        using type = std::span<std::tuple_element_t<Index, typename xk::span_tuple<First, Extent, Others...>::value_type>, Extent>;
+    };
+}
