@@ -351,6 +351,13 @@ namespace xk
         {
             return *get<Index>(m_data);
         }
+
+        template<class Index>
+        constexpr Index& front() const noexcept
+        {
+            return *get<Index*>(m_data);
+        }
+
         constexpr reference back() const noexcept
         {
             return std::apply([offset = m_size - 1](auto&&... elements)
@@ -365,6 +372,12 @@ namespace xk
             return get<Index>(m_data)[m_size - 1];
         }
 
+        template<class Index>
+        constexpr Index& back() const noexcept
+        {
+            return get<Index*>(m_data)[m_size - 1];
+        }
+
         constexpr pointer data() const noexcept { return m_data; }
 
         template<size_t Index>
@@ -373,13 +386,25 @@ namespace xk
             return get<Index>(m_data);
         }
 
+        template<class Index>
+        constexpr Index* data() const noexcept 
+        { 
+            return get<Index*>(m_data);
+        }
+
         constexpr size_t size() const noexcept { return m_size; }
         constexpr size_t size_bytes() const noexcept { return ((sizeof(Ty) * m_size) + ...); }
         template<size_t Index>
         constexpr size_t size_bytes() const noexcept { return sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
+        template<class Index>
+            requires std::same_as<Index, First> || (std::same_as<Index, Ty> || ...)
+        constexpr size_t size_bytes() const noexcept { return sizeof(Index) * m_size; }
         constexpr bool empty() const noexcept { return m_size == 0; }
 
         template<size_t Index, class First, size_t Extent, class... Ty>
+        friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
+
+        template<class Index, class First, size_t Extent, class... Ty>
         friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
 
 
@@ -436,6 +461,12 @@ namespace xk
     constexpr auto get(span_tuple<First, Extent, Ty...> span)
     {
         return std::span<std::tuple_element_t<Index, typename span_tuple<First, Extent, Ty...>::value_type>, Extent>(get<Index>(span.data()), span.size());
+    }
+
+    template<class Index, class First, size_t Extent, class... Ty>
+    constexpr auto get(span_tuple<First, Extent, Ty...> span)
+    {
+        return std::span<Index, Extent>(std::get<Index*>(span.data()), span.size());
     }
 }
 

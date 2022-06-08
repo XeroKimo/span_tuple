@@ -49,6 +49,13 @@ int main()
 
     auto [ispan, fspan] = span;
     std::tuple<int*, float*> t;
+
+    std::span<int> iispan = get<int>(span);
+
+    int* iidata = span.data<int>();
+
+    auto iifront = span.front<int>();
+
     //for(auto r : span)
     //{
     //    //std::cout << r << " ";
