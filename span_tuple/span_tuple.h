@@ -99,7 +99,7 @@ namespace xk
         constexpr span_tuple_iterator& operator+=(const difference_type _Off) noexcept {
             _Verify_offset(_Off);
 
-            std::apply([](auto*&... ptrs)
+            std::apply([=](auto*&... ptrs)
             {
                 ((ptrs += _Off), ...);
             }, _Myptr);
@@ -120,7 +120,7 @@ namespace xk
         constexpr span_tuple_iterator& operator-=(const difference_type _Off) noexcept {
             _Verify_offset(-_Off);
 
-            std::apply([](auto*&... ptrs)
+            std::apply([=](auto*&... ptrs)
             {
                 ((ptrs -= _Off), ...);
             }, _Myptr);

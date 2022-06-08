@@ -37,12 +37,17 @@ int main()
     static_assert(sizeof(xk::span_tuple<int, 4, float>) == sizeof(int*) + sizeof(float*));
     static_assert(sizeof(xk::span_tuple<int, std::dynamic_extent, float>) == sizeof(int*) + sizeof(float*) + sizeof(size_t));
 
-    for(auto it = span.begin(); it != span.end(); ++it)
     {
-        std::cout << "[" << get<0>(*it) << ", " << get<1>(*it) << "]\n" ;
+        auto begin = span.begin();
+        auto end = span.end();
+        for(; begin != end; ++begin)
+        {
+            std::tuple<int&, float&> t = *begin;
+            std::cout << "[" << get<0>(t) << ", " << get<1>(t) << "]\n";
+        }
     }
 
-    //for(xk::span_tuple<int, 4, float>::value_type r : span)
+    //for(std::tuple<int&, float&> r : span)
     //{
 
     //}
