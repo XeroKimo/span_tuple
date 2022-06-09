@@ -218,18 +218,6 @@ namespace xk
         size_t m_size{ 0 };
     };
 
-    template<class First, size_t Extent, class... Ty>
-    struct span_traits
-    {
-        using value_type = std::tuple<std::remove_cv_t<First>, std::remove_cv_t<Ty>...>;
-        using pointer = std::tuple<First*, Ty*...>;
-        using reference = std::tuple<First&, Ty&...>;
-        using size_type = size_t;
-    };
-
-    template<class First, size_t Extent>
-    struct span_traits<First, Extent>;
-
     template<class First, size_t Extent = std::dynamic_extent, class... Ty>
     class span_tuple : private Extent_type<First, Extent, Ty...>
     {
@@ -239,12 +227,18 @@ namespace xk
         using base::m_size;
 
     public:
-        using value_type = typename span_traits<First, Extent, Ty...>::value_type;
-        using pointer = typename span_traits<First, Extent, Ty...>::pointer;
-        using reference = typename span_traits<First, Extent, Ty...>::reference;
-        using size_type = typename span_traits<First, Extent, Ty...>::size_type;
+        using element_type = std::tuple<First, Ty...>;
+        using value_type = std::tuple<std::remove_cv_t<First>, std::remove_cv_t<Ty>...>;
+        using pointer = std::tuple<First*, Ty*...>;
+        using const_pointer = std::tuple<const First*, const Ty*...>;
+        using reference = std::tuple<First&, Ty&...>;
+        using const_reference = std::tuple<const First&, const Ty&...>;
+        using size_type = size_t;
+        using difference_type = ptrdiff_t;
         using iterator = span_tuple_iterator<First, Ty...>;
         using reverse_iterator = ::std::reverse_iterator<iterator>;
+
+        static constexpr size_type extent = Extent;
 
     public:
         constexpr span_tuple() noexcept requires (Extent == 0 || Extent == std::dynamic_extent) = default;
