@@ -329,13 +329,6 @@ namespace xk
                 }
 
     public:
-        constexpr reference operator[](size_t offset) const noexcept
-        {
-            return std::apply([offset](auto&&... elements)
-            {
-                return reference(elements[offset]...);
-            }, m_data);
-        }
 
             // [span.sub] Subviews
         template <size_t _Count>
@@ -415,8 +408,23 @@ namespace xk
         }
 
     public:
+        constexpr reference operator[](size_t offset) const noexcept
+        {
+#if _CONTAINER_DEBUG_LEVEL > 0
+            _STL_VERIFY(offset < m_size, "span index out of range");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+            return std::apply([offset](auto&&... elements)
+            {
+                return reference(elements[offset]...);
+            }, m_data);
+        }
+
         constexpr reference front() const noexcept
         {
+#if _CONTAINER_DEBUG_LEVEL > 0
+#pragma warning(suppress : 4127) // conditional expression is constant
+            _STL_VERIFY(m_size > 0, "front of empty span");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
             return std::apply([](auto&&... elements)
             {
                 return reference(*elements...);
@@ -426,17 +434,29 @@ namespace xk
         template<size_t Index>
         constexpr std::tuple_element_t<Index, reference> front() const noexcept
         {
+#if _CONTAINER_DEBUG_LEVEL > 0
+#pragma warning(suppress : 4127) // conditional expression is constant
+            _STL_VERIFY(m_size > 0, "front of empty span");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
             return *get<Index>(m_data);
         }
 
         template<class Index>
         constexpr Index& front() const noexcept
         {
+#if _CONTAINER_DEBUG_LEVEL > 0
+#pragma warning(suppress : 4127) // conditional expression is constant
+            _STL_VERIFY(m_size > 0, "front of empty span");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
             return *get<Index*>(m_data);
         }
 
         constexpr reference back() const noexcept
         {
+#if _CONTAINER_DEBUG_LEVEL > 0
+#pragma warning(suppress : 4127) // conditional expression is constant
+            _STL_VERIFY(m_size > 0, "back of empty span");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
             return std::apply([offset = m_size - 1](auto&&... elements)
             {
                 return reference(elements[offset]...);
@@ -446,12 +466,20 @@ namespace xk
         template<size_t Index>
         constexpr std::tuple_element_t<Index, reference> back() const noexcept
         {
+#if _CONTAINER_DEBUG_LEVEL > 0
+#pragma warning(suppress : 4127) // conditional expression is constant
+            _STL_VERIFY(m_size > 0, "back of empty span");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
             return get<Index>(m_data)[m_size - 1];
         }
 
         template<class Index>
         constexpr Index& back() const noexcept
         {
+#if _CONTAINER_DEBUG_LEVEL > 0
+#pragma warning(suppress : 4127) // conditional expression is constant
+            _STL_VERIFY(m_size > 0, "back of empty span");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
             return get<Index*>(m_data)[m_size - 1];
         }
 
@@ -470,7 +498,6 @@ namespace xk
         }
 
         constexpr size_t size() const noexcept { return m_size; }
-        constexpr size_t size_bytes() const noexcept { return ((sizeof(Ty) * m_size) + ...); }
         template<size_t Index>
         constexpr size_t size_bytes() const noexcept { return sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
         template<class Index>
