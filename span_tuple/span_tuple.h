@@ -1,12 +1,16 @@
 #pragma once
 #include <tuple>
 #include <span>
+#include <array>
+#include <cassert>
 
-namespace std
-{
-    template<class Ty, size_t Extent>
-    class array;
-}
+//MAYBE TODO: Create a NO DISCARD macro in c
+
+#if __has_cpp_attribute(nodiscard)
+#define XK_SPAN_TUPLE_NODISCARD [[nodiscard]]
+#else
+#define XK_SPAN_TUPLE_NODISCARD
+#endif
 
 namespace xk
 {
@@ -24,30 +28,18 @@ namespace xk
         using pointer = std::tuple<First*, Others*...>;
         using reference = std::tuple<First&, Others&...>;
 
-        _NODISCARD constexpr reference operator*() const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot dereference value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Myptr) < std::get<0>(_Myend), "cannot dereference end span iterator");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
+        XK_SPAN_TUPLE_NODISCARD constexpr reference operator*() const noexcept {
             return std::apply([](auto&&... elements)
             {
                 return reference(*elements...);
             }, _Myptr);
         }
 
-        _NODISCARD constexpr pointer operator->() const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot dereference value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Myptr) < std::get<0>(_Myend), "cannot dereference end span iterator");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
+        XK_SPAN_TUPLE_NODISCARD constexpr pointer operator->() const noexcept {
             return _Myptr;
         }
 
         constexpr span_tuple_iterator& operator++() noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot increment value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Myptr) < std::get<0>(_Myend), "cannot increment span iterator past end");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
             std::apply([](auto*&... ptrs)
             {
                 (++ptrs, ...);
@@ -62,11 +54,6 @@ namespace xk
         }
 
         constexpr span_tuple_iterator& operator--() noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot decrement value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Mybegin) < std::get<0>(_Myptr), "cannot decrement span iterator before begin");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
-
             std::apply([](auto*&... ptrs)
             {
                 (--ptrs, ...);
@@ -80,25 +67,7 @@ namespace xk
             return _Tmp;
         }
 
-        constexpr void _Verify_offset([[maybe_unused]] const difference_type _Off) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            if(_Off != 0) {
-                _STL_VERIFY(std::get<0>(_Mybegin), "cannot seek value-initialized span iterator");
-            }
-
-            if(_Off < 0) {
-                _STL_VERIFY(std::get<0>(_Myptr) - std::get<0>(_Mybegin) >= -_Off, "cannot seek span iterator before begin");
-            }
-
-            if(_Off > 0) {
-                _STL_VERIFY(std::get<0>(_Myend) - std::get<0>(_Myptr) >= _Off, "cannot seek span iterator after end");
-            }
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
-        }
-
         constexpr span_tuple_iterator& operator+=(const difference_type _Off) noexcept {
-            _Verify_offset(_Off);
-
             std::apply([=](auto*&... ptrs)
             {
                 ((ptrs += _Off), ...);
@@ -106,20 +75,18 @@ namespace xk
             return *this;
         }
 
-        _NODISCARD constexpr span_tuple_iterator operator+(const difference_type _Off) const noexcept {
+        XK_SPAN_TUPLE_NODISCARD constexpr span_tuple_iterator operator+(const difference_type _Off) const noexcept {
             span_tuple_iterator _Tmp{ *this };
             _Tmp += _Off;
             return _Tmp;
         }
 
-        _NODISCARD friend constexpr span_tuple_iterator operator+(const difference_type _Off, span_tuple_iterator _Next) noexcept {
+        XK_SPAN_TUPLE_NODISCARD friend constexpr span_tuple_iterator operator+(const difference_type _Off, span_tuple_iterator _Next) noexcept {
             _Next += _Off;
             return _Next;
         }
 
         constexpr span_tuple_iterator& operator-=(const difference_type _Off) noexcept {
-            _Verify_offset(-_Off);
-
             std::apply([=](auto*&... ptrs)
             {
                 ((ptrs -= _Off), ...);
@@ -127,66 +94,61 @@ namespace xk
             return *this;
         }
 
-        _NODISCARD constexpr span_tuple_iterator operator-(const difference_type _Off) const noexcept {
+        XK_SPAN_TUPLE_NODISCARD constexpr span_tuple_iterator operator-(const difference_type _Off) const noexcept {
             span_tuple_iterator _Tmp{ *this };
             _Tmp -= _Off;
             return _Tmp;
         }
 
-        _NODISCARD constexpr difference_type operator-(const span_tuple_iterator& _Right) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(
-                _Mybegin == _Right._Mybegin && _Myend == _Right._Myend, "cannot subtract incompatible span iterators");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
+        XK_SPAN_TUPLE_NODISCARD constexpr difference_type operator-(const span_tuple_iterator& _Right) const noexcept {
             return _Myptr - _Right._Myptr;
         }
 
-        _NODISCARD constexpr reference operator[](const difference_type _Off) const noexcept {
+        XK_SPAN_TUPLE_NODISCARD constexpr reference operator[](const difference_type _Off) const noexcept {
             return *(*this + _Off);
         }
 
-        _NODISCARD constexpr bool operator==(const span_tuple_iterator& _Right) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(_Mybegin == _Right._Mybegin && _Myend == _Right._Myend,
-                "cannot compare incompatible span iterators for equality");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
+        XK_SPAN_TUPLE_NODISCARD constexpr bool operator==(const span_tuple_iterator& _Right) const noexcept {
+
             return _Myptr == _Right._Myptr;
         }
 
-        _NODISCARD constexpr std::strong_ordering operator<=>(const span_tuple_iterator& _Right) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(
-                _Mybegin == _Right._Mybegin && _Myend == _Right._Myend, "cannot compare incompatible span iterators");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
+        XK_SPAN_TUPLE_NODISCARD constexpr std::strong_ordering operator<=>(const span_tuple_iterator& _Right) const noexcept {
             return _Myptr <=> _Right._Myptr;
         }
 
-#if _ITERATOR_DEBUG_LEVEL >= 1
-        friend constexpr void _Verify_range(const span_tuple_iterator& _First, const span_tuple_iterator& _Last) noexcept {
-            _STL_VERIFY(_First._Mybegin == _Last._Mybegin && _First._Myend == _Last._Myend,
-                "span iterators from different views do not form a range");
-            _STL_VERIFY(_First._Myptr <= _Last._Myptr, "span iterator range transposed");
-        }
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
-
-        using _Prevent_inheriting_unwrap = span_tuple_iterator;
-
-        _NODISCARD constexpr pointer _Unwrapped() const noexcept {
-            return _Myptr;
-        }
-
-        static constexpr bool _Unwrap_when_unverified = _ITERATOR_DEBUG_LEVEL == 0;
-
-        constexpr void _Seek_to(const pointer _It) noexcept {
-            _Myptr = _It;
-        }
-
         pointer _Myptr = nullptr;
-#if _ITERATOR_DEBUG_LEVEL >= 1
-        pointer _Mybegin = nullptr;
-        pointer _Myend = nullptr;
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
     };
+
+    template <class>
+    inline constexpr bool Is_span_v = false;
+
+    template <class _Ty, size_t _Extent>
+    inline constexpr bool Is_span_v<std::span<_Ty, _Extent>> = true;
+
+    template <class>
+    inline constexpr bool Is_std_array_v = false;
+
+    template <class _Ty, size_t _Size>
+    inline constexpr bool Is_std_array_v<std::array<_Ty, _Size>> = true;
+
+    template <class _It, class _Ty>
+    concept Span_compatible_iterator = std::contiguous_iterator<_It>
+        && std::is_convertible_v<std::remove_reference_t<std::iter_reference_t<_It>>(*)[], _Ty(*)[]>;
+
+    template <class _Sentinel, class _It>
+    concept Span_compatible_sentinel = std::sized_sentinel_for<_Sentinel, _It>
+        && !std::is_convertible_v<_Sentinel, size_t>;
+
+    template <class _Rng, class _Ty>
+    concept Span_compatible_range =
+        !std::is_array_v<std::remove_cvref_t<_Rng>>
+        && !Is_span_v<std::remove_cvref_t<_Rng>>
+        && !Is_std_array_v<std::remove_cvref_t<_Rng>>
+        && ::std::ranges::contiguous_range<_Rng>
+        && ::std::ranges::sized_range<_Rng>
+        && (::std::ranges::borrowed_range<_Rng> || std::is_const_v<_Ty>)
+        && std::is_convertible_v<std::remove_reference_t<::std::ranges::range_reference_t<_Rng>>(*)[], _Ty(*)[]>;
 
     template<class First, size_t Extent, class... Ty>
     struct Extent_type
@@ -243,29 +205,27 @@ namespace xk
     public:
         constexpr span_tuple() noexcept requires (Extent == 0 || Extent == std::dynamic_extent) = default;
 
-        template <std::_Span_compatible_iterator<First> It, std::_Span_compatible_iterator<Ty>... OtherIt>
+        template <Span_compatible_iterator<First> It, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
-            : base(std::forward_as_tuple(std::to_address(std::_Get_unwrapped_n(FirstIt, Count)), std::to_address(std::_Get_unwrapped_n(otherIt, Count))...), Count) {
-#if _CONTAINER_DEBUG_LEVEL > 0
-            if constexpr(Extent != std::dynamic_extent) {
-                _STL_VERIFY(Count == Extent,
+            : base(std::forward_as_tuple(std::to_address(FirstIt + Count), std::to_address(otherIt + Count)...), Count) 
+        {
+            if constexpr(Extent != std::dynamic_extent) 
+            {
+                assert(Count == Extent &&
                     "Cannot construct span with static extent from range [first, first + count) as count != extent");
             }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
         }
 
-        template <std::_Span_compatible_iterator<First> _It, std::_Span_compatible_sentinel<_It> _Sentinel, std::_Span_compatible_iterator<Ty>... OtherIt>
+        template <Span_compatible_iterator<First> _It, Span_compatible_sentinel<_It> _Sentinel, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(_It _First, _Sentinel _Last, OtherIt... otherIt)
             noexcept(noexcept(_Last - _First)) // strengthened
             : base(std::forward_as_tuple(std::to_address(_First), std::to_address(otherIt)...), static_cast<size_type>(_Last - _First)) 
         {
-            std::_Adl_verify_range(_First, _Last);
-#if _CONTAINER_DEBUG_LEVEL > 0
-            if constexpr(Extent != std::dynamic_extent) {
-                _STL_VERIFY(_Last - _First == Extent,
+            if constexpr(Extent != std::dynamic_extent) 
+            {
+                assert(_Last - _First == Extent &&
                     "Cannot construct span with static extent from range [first, last) as last - first != extent");
             }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
         }
 
         template<size_t Size>
@@ -302,101 +262,88 @@ namespace xk
                 (std::is_convertible_v<OtherTy(*)[], Ty(*)[]> && ...)
             constexpr explicit(Extent != std::dynamic_extent && OtherExtent == std::dynamic_extent)
         span_tuple(const span_tuple<OtherFirst, OtherExtent, OtherTy...>& other) noexcept
-                    : base(other.data(), other.size())
+            : base(other.data(), other.size())
+        {
+            if constexpr(Extent != std::dynamic_extent) 
             {
-#if _CONTAINER_DEBUG_LEVEL > 0
-            if constexpr(Extent != std::dynamic_extent) {
-                _STL_VERIFY(other.size() == Extent,
+                assert(other.size() == Extent &&
                     "Cannot construct span with static extent from other span as other.size() != extent");
             }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+
         }
-        template <std::_Span_compatible_range<First> _Rng, std::_Span_compatible_range<Ty>... OtherRng>
-            constexpr explicit(Extent != std::dynamic_extent) span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
-                    : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range))) {
-#if _CONTAINER_DEBUG_LEVEL > 0
-                    if constexpr(Extent != std::dynamic_extent) {
-                        _STL_VERIFY(::std::ranges::size(_Range) == Extent,
-                            "Cannot construct span with static extent from range r as std::ranges::size(r) != extent");
-                    }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
-                }
+        template <Span_compatible_range<First> _Rng, Span_compatible_range<Ty>... OtherRng>
+        constexpr explicit(Extent != std::dynamic_extent) span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
+            : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range))) 
+        {
+            if constexpr(Extent != std::dynamic_extent) 
+            {
+                assert(::std::ranges::size(_Range) == Extent &&
+                    "Cannot construct span with static extent from range r as std::ranges::size(r) != extent");
+            }
+        }
 
     public:
 
             // [span.sub] Subviews
         template <size_t _Count>
-        _NODISCARD constexpr auto first() const noexcept /* strengthened */ {
-            if constexpr(Extent != std::dynamic_extent) {
+        XK_SPAN_TUPLE_NODISCARD constexpr auto first() const noexcept /* strengthened */ 
+        {
+            if constexpr(Extent != std::dynamic_extent) 
+            {
                 static_assert(_Count <= Extent, "Count out of range in span::first()");
             }
-#if _CONTAINER_DEBUG_LEVEL > 0
-            else {
-                _STL_VERIFY(_Count <= m_size, "Count out of range in span::first()");
-            }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
 
+            assert(_Count <= m_size && "Count out of range in span::first()");
 
             return first_impl<_Count>(std::make_index_sequence<sizeof...(Ty)>());
         }
 
-        _NODISCARD constexpr auto first(const size_type _Count) const noexcept
-            /* strengthened */ {
-#if _CONTAINER_DEBUG_LEVEL > 0
-            _STL_VERIFY(_Count <= m_size, "Count out of range in span::first(count)");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+        XK_SPAN_TUPLE_NODISCARD constexpr auto first(const size_type _Count) const noexcept
+        {
+            assert(_Count <= m_size && "Count out of range in span::first(count)");
             return first_impl(_Count, std::make_index_sequence<sizeof...(Ty)>());
         }
 
         template <size_t _Count>
-        _NODISCARD constexpr auto last() const noexcept /* strengthened */ {
-            if constexpr(Extent != std::dynamic_extent) {
+        XK_SPAN_TUPLE_NODISCARD constexpr auto last() const noexcept /* strengthened */ 
+        {
+            if constexpr(Extent != std::dynamic_extent) 
+            {
                 static_assert(_Count <= Extent, "Count out of range in span::last()");
             }
-#if _CONTAINER_DEBUG_LEVEL > 0
-            else {
-                _STL_VERIFY(_Count <= m_size, "Count out of range in span::last()");
-            }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+
+            assert(_Count <= m_size && "Count out of range in span::last()");
             return last_impl<_Count>(std::make_index_sequence<sizeof...(Ty)>());
         }
 
-        _NODISCARD constexpr auto last(const size_type _Count) const noexcept /* strengthened */ {
-#if _CONTAINER_DEBUG_LEVEL > 0
-            _STL_VERIFY(_Count <= m_size, "Count out of range in span::last(count)");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+        XK_SPAN_TUPLE_NODISCARD constexpr auto last(const size_type _Count) const noexcept /* strengthened */ {
+
+            assert(_Count <= m_size && "Count out of range in span::last(count)");
             return last_impl(_Count, std::make_index_sequence<sizeof...(Ty)>());
         }
 
         template <size_t _Offset, size_t _Count = std::dynamic_extent>
-        _NODISCARD constexpr auto subspan() const noexcept /* strengthened */ {
-            if constexpr(Extent != std::dynamic_extent) {
+        XK_SPAN_TUPLE_NODISCARD constexpr auto subspan() const noexcept /* strengthened */ 
+        {
+            if constexpr(Extent != std::dynamic_extent) 
+            {
                 static_assert(_Offset <= Extent, "Offset out of range in span::subspan()");
-                static_assert(
-                    _Count == std::dynamic_extent || _Count <= Extent - _Offset, "Count out of range in span::subspan()");
+                static_assert(_Count == std::dynamic_extent || _Count <= Extent - _Offset, "Count out of range in span::subspan()");
             }
-#if _CONTAINER_DEBUG_LEVEL > 0
-            else {
-                _STL_VERIFY(_Offset <= m_size, "Offset out of range in span::subspan()");
 
-                if constexpr(_Count != std::dynamic_extent) {
-                    _STL_VERIFY(_Count <= m_size - _Offset, "Count out of range in span::subspan()");
-                }
-            }
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(_Offset <= m_size && "Offset out of range in span::subspan(offset, count)");
+            assert(_Count <= m_size - _Offset && "Count out of range in span::subspan()");
             using _ReturnType = span_tuple<First,
                 _Count != std::dynamic_extent ? _Count : (Extent != std::dynamic_extent ? Extent - _Offset : std::dynamic_extent), Ty...>;
 
             return subspan_impl<_Offset, _Count>(std::make_index_sequence<sizeof...(Ty)>());
         }
 
-        _NODISCARD constexpr auto subspan(const size_type _Offset, const size_type _Count = std::dynamic_extent) const noexcept
-            /* strengthened */ {
-#if _CONTAINER_DEBUG_LEVEL > 0
-            _STL_VERIFY(_Offset <= m_size, "Offset out of range in span::subspan(offset, count)");
-            _STL_VERIFY(_Count == std::dynamic_extent || _Count <= m_size - _Offset,
-                "Count out of range in span::subspan(offset, count)");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+        XK_SPAN_TUPLE_NODISCARD constexpr auto subspan(const size_type _Offset, const size_type _Count = std::dynamic_extent) const noexcept
+        {
+            assert(_Offset <= m_size && "Offset out of range in span::subspan(offset, count)");
+            assert((_Count == std::dynamic_extent || _Count <= m_size - _Offset) && "Count out of range in span::subspan(offset, count)");
+
             using _ReturnType = span_tuple<First, std::dynamic_extent, Ty...>;
             return subspan_impl(_Offset, _Count, std::make_index_sequence<sizeof...(Ty)>());
         }
@@ -404,9 +351,7 @@ namespace xk
     public:
         constexpr reference operator[](size_t offset) const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-            _STL_VERIFY(offset < m_size, "span index out of range");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(offset < m_size && "span index out of range");
             return std::apply([offset](auto&&... elements)
             {
                 return reference(elements[offset]...);
@@ -415,10 +360,7 @@ namespace xk
 
         constexpr reference front() const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-#pragma warning(suppress : 4127) // conditional expression is constant
-            _STL_VERIFY(m_size > 0, "front of empty span");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(m_size > 0 && "front of empty span");
             return std::apply([](auto&&... elements)
             {
                 return reference(*elements...);
@@ -428,29 +370,20 @@ namespace xk
         template<size_t Index>
         constexpr std::tuple_element_t<Index, reference> front() const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-#pragma warning(suppress : 4127) // conditional expression is constant
-            _STL_VERIFY(m_size > 0, "front of empty span");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(m_size > 0 && "front of empty span");
             return *get<Index>(m_data);
         }
 
         template<class Index>
         constexpr Index& front() const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-#pragma warning(suppress : 4127) // conditional expression is constant
-            _STL_VERIFY(m_size > 0, "front of empty span");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(m_size > 0 && "front of empty span");
             return *get<Index*>(m_data);
         }
 
         constexpr reference back() const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-#pragma warning(suppress : 4127) // conditional expression is constant
-            _STL_VERIFY(m_size > 0, "back of empty span");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(m_size > 0 && "back of empty span");
             return std::apply([offset = m_size - 1](auto&&... elements)
             {
                 return reference(elements[offset]...);
@@ -460,20 +393,14 @@ namespace xk
         template<size_t Index>
         constexpr std::tuple_element_t<Index, reference> back() const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-#pragma warning(suppress : 4127) // conditional expression is constant
-            _STL_VERIFY(m_size > 0, "back of empty span");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(m_size > 0 && "back of empty span");
             return get<Index>(m_data)[m_size - 1];
         }
 
         template<class Index>
         constexpr Index& back() const noexcept
         {
-#if _CONTAINER_DEBUG_LEVEL > 0
-#pragma warning(suppress : 4127) // conditional expression is constant
-            _STL_VERIFY(m_size > 0, "back of empty span");
-#endif // _CONTAINER_DEBUG_LEVEL > 0
+            assert(m_size > 0 && "back of empty span");
             return get<Index*>(m_data)[m_size - 1];
         }
 
@@ -492,11 +419,14 @@ namespace xk
         }
 
         constexpr size_t size() const noexcept { return m_size; }
+
         template<size_t Index>
         constexpr size_t size_bytes() const noexcept { return sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
+
         template<class Index>
             requires std::same_as<Index, First> || (std::same_as<Index, Ty> || ...)
         constexpr size_t size_bytes() const noexcept { return sizeof(Index) * m_size; }
+
         constexpr bool empty() const noexcept { return m_size == 0; }
 
         template<size_t Index, class First, size_t Extent, class... Ty>
@@ -507,75 +437,62 @@ namespace xk
 
 
     // [span.iterators] Iterator support
-        _NODISCARD constexpr iterator begin() const noexcept {
-
-            const auto _End = std::apply([size = m_size](auto*... ptrs)
-            {
-                ((ptrs += size), ...);
-                return std::tuple(ptrs...);
-        }, m_data);
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            return { m_data, m_data, _End };
-#else // ^^^ _ITERATOR_DEBUG_LEVEL >= 1 ^^^ // vvv _ITERATOR_DEBUG_LEVEL == 0 vvv
-            return { m_data };
-#endif // _ITERATOR_DEBUG_LEVEL
-        }
-
-        _NODISCARD constexpr iterator end() const noexcept {
+        XK_SPAN_TUPLE_NODISCARD constexpr iterator begin() const noexcept 
+        {
             const auto _End = std::apply([size = m_size](auto*... ptrs)
             {
                 ((ptrs += size), ...);
                 return std::tuple(ptrs...);
             }, m_data);
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            return { _End, m_data, _End };
-#else // ^^^ _ITERATOR_DEBUG_LEVEL >= 1 ^^^ // vvv _ITERATOR_DEBUG_LEVEL == 0 vvv
-            return { _End };
-#endif // _ITERATOR_DEBUG_LEVEL
+            return { m_data };
         }
 
-        _NODISCARD constexpr reverse_iterator rbegin() const noexcept {
+        XK_SPAN_TUPLE_NODISCARD constexpr iterator end() const noexcept 
+        {
+            const auto _End = std::apply([size = m_size](auto*... ptrs)
+            {
+                ((ptrs += size), ...);
+                return std::tuple(ptrs...);
+            }, m_data);
+            return { _End };
+        }
+
+        XK_SPAN_TUPLE_NODISCARD constexpr reverse_iterator rbegin() const noexcept 
+        {
             return reverse_iterator{ end() };
         }
 
-        _NODISCARD constexpr reverse_iterator rend() const noexcept {
+        XK_SPAN_TUPLE_NODISCARD constexpr reverse_iterator rend() const noexcept
+        {
             return reverse_iterator{ begin() };
-        }
-
-        _NODISCARD constexpr pointer _Unchecked_begin() const noexcept {
-            return m_data;
-        }
-
-        _NODISCARD constexpr pointer _Unchecked_end() const noexcept {
-            return m_data + m_size;
         }
 
     private:
         template<size_t Count, class T, T... Indexs>
-        _NODISCARD constexpr auto first_impl(std::index_sequence<Indexs...>) const noexcept
+        XK_SPAN_TUPLE_NODISCARD constexpr auto first_impl(std::index_sequence<Indexs...>) const noexcept
         {
             return span_tuple<First, Count, Ty...>{std::get<0>(m_data), Count, std::get<Indexs + 1>(m_data)...};
         }
 
         template<class T, T... Indexs>
-        _NODISCARD constexpr auto first_impl(size_t count, std::index_sequence<Indexs...>) const noexcept
+        XK_SPAN_TUPLE_NODISCARD constexpr auto first_impl(size_t count, std::index_sequence<Indexs...>) const noexcept
         {
             return span_tuple<First, std::dynamic_extent, Ty...>{std::get<0>(m_data), count, std::get<Indexs + 1>(m_data)...};
         }
         template<size_t Count, class T, T... Indexs>
-        _NODISCARD constexpr auto last_impl(std::index_sequence<Indexs...>) const noexcept
+        XK_SPAN_TUPLE_NODISCARD constexpr auto last_impl(std::index_sequence<Indexs...>) const noexcept
         {
             return span_tuple<First, Count, Ty...>{std::get<0>(m_data) + (m_size - Count), Count, (std::get<Indexs + 1>(m_data) + (m_size - Count))...};
         }
 
         template<class T, T... Indexs>
-        _NODISCARD constexpr auto last_impl(size_t count, std::index_sequence<Indexs...>) const noexcept
+        XK_SPAN_TUPLE_NODISCARD constexpr auto last_impl(size_t count, std::index_sequence<Indexs...>) const noexcept
         {
             return span_tuple<First, std::dynamic_extent, Ty...>{std::get<0>(m_data) + (m_size - count), count, (std::get<Indexs + 1>(m_data) + (m_size - count))...};
         }
 
         template<size_t Offset, size_t Count, class T, T... Indexs>
-        _NODISCARD constexpr auto subspan_impl(std::index_sequence<Indexs...>) const noexcept
+        XK_SPAN_TUPLE_NODISCARD constexpr auto subspan_impl(std::index_sequence<Indexs...>) const noexcept
         {
             using _ReturnType = span_tuple<First,
                 Count != std::dynamic_extent ? Count : (Extent != std::dynamic_extent ? Extent - Offset : std::dynamic_extent), Ty...>;
@@ -583,7 +500,7 @@ namespace xk
         }
 
         template<class T, T... Indexs>
-        _NODISCARD constexpr auto subspan_impl(size_t offset, size_t count, std::index_sequence<Indexs...>) const noexcept
+        XK_SPAN_TUPLE_NODISCARD constexpr auto subspan_impl(size_t offset, size_t count, std::index_sequence<Indexs...>) const noexcept
         {
             return span_tuple<First, std::dynamic_extent, Ty...>{ std::get<0>(m_data) + offset, count == std::dynamic_extent ? m_size - offset : count, (std::get<Indexs + 1>(m_data) + offset)... };
         }

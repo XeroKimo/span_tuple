@@ -21,7 +21,8 @@ int main()
     xk::span_tuple<int, std::dynamic_extent, float> span4(&ar[1], 2, a2.data());
     xk::span_tuple<int, std::dynamic_extent, float> span5(a1.begin(), a1.end(), a2.begin());
 
-
+    xk::span_tuple<int, std::dynamic_extent, float> r6;
+    r6.back();
 
     float& f2= span.back<1>();
 
@@ -45,6 +46,11 @@ int main()
             std::tuple<int&, float&> t = *begin;
             std::cout << "[" << get<0>(t) << ", " << get<1>(t) << "]\n";
         }
+    }
+
+    for(auto val : span)
+    {
+
     }
 
     auto [ispan, fspan] = span;
