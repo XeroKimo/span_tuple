@@ -1,3 +1,10 @@
+//*********************************************************
+//
+// Copyright (c) 2022 Renzy Alarcon
+// Licensed under the MIT License (MIT).
+//
+//*********************************************************
+
 #pragma once
 #include <tuple>
 #include <span>
