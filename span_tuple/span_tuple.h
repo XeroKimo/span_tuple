@@ -1,6 +1,7 @@
 #pragma once
 #include <tuple>
 #include <span>
+#include <array>
 
 //MAYBE TODO: Create a NO DISCARD macro in c
 
@@ -9,12 +10,6 @@
 #else
 #define XK_SPAN_TUPLE_NODISCARD
 #endif
-
-namespace std
-{
-    template<class Ty, size_t Extent>
-    class array;
-}
 
 namespace xk
 {
@@ -121,18 +116,10 @@ namespace xk
             return _Myptr <=> _Right._Myptr;
         }
 
-        using _Prevent_inheriting_unwrap = span_tuple_iterator;
-
-        XK_SPAN_TUPLE_NODISCARD constexpr pointer _Unwrapped() const noexcept {
-            return _Myptr;
-        }
-
-        constexpr void _Seek_to(const pointer _It) noexcept {
-            _Myptr = _It;
-        }
-
         pointer _Myptr = nullptr;
     };
+
+
 
     template<class First, size_t Extent, class... Ty>
     struct Extent_type
@@ -146,6 +133,24 @@ namespace xk
         pointer m_data = {};
         static constexpr size_t m_size = Extent;
     };
+
+    template <class _It, class _Ty>
+    concept Span_compatible_iterator = std::contiguous_iterator<_It>
+        && std::is_convertible_v<std::remove_reference_t<std::iter_reference_t<_It>>(*)[], _Ty(*)[]>;
+
+    template <class _Sentinel, class _It>
+    concept Span_compatible_sentinel = std::sized_sentinel_for<_Sentinel, _It>
+        && !std::is_convertible_v<_Sentinel, size_t>;
+
+    template <class _Rng, class _Ty>
+    concept Span_compatible_range =
+        !std::is_array_v<std::remove_cvref_t<_Rng>>
+        && !std::_Is_span_v<std::remove_cvref_t<_Rng>>
+        && !std::_Is_std_array_v<std::remove_cvref_t<_Rng>>
+        && ::std::ranges::contiguous_range<_Rng>
+        && ::std::ranges::sized_range<_Rng>
+        && (::std::ranges::borrowed_range<_Rng> || std::is_const_v<_Ty>)
+        && std::is_convertible_v<std::remove_reference_t<::std::ranges::range_reference_t<_Rng>>(*)[], _Ty(*)[]>;
 
     template<class First, class... Ty>
     struct Extent_type<First, std::dynamic_extent, Ty...>
@@ -189,7 +194,7 @@ namespace xk
     public:
         constexpr span_tuple() noexcept requires (Extent == 0 || Extent == std::dynamic_extent) = default;
 
-        template <std::_Span_compatible_iterator<First> It, std::_Span_compatible_iterator<Ty>... OtherIt>
+        template <Span_compatible_iterator<First> It, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
             : base(std::forward_as_tuple(std::to_address(std::_Get_unwrapped_n(FirstIt, Count)), std::to_address(std::_Get_unwrapped_n(otherIt, Count))...), Count) {
 #if _CONTAINER_DEBUG_LEVEL > 0
@@ -200,7 +205,7 @@ namespace xk
 #endif // _CONTAINER_DEBUG_LEVEL > 0
         }
 
-        template <std::_Span_compatible_iterator<First> _It, std::_Span_compatible_sentinel<_It> _Sentinel, std::_Span_compatible_iterator<Ty>... OtherIt>
+        template <Span_compatible_iterator<First> _It, Span_compatible_sentinel<_It> _Sentinel, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(_It _First, _Sentinel _Last, OtherIt... otherIt)
             noexcept(noexcept(_Last - _First)) // strengthened
             : base(std::forward_as_tuple(std::to_address(_First), std::to_address(otherIt)...), static_cast<size_type>(_Last - _First)) 
@@ -257,7 +262,7 @@ namespace xk
             }
 #endif // _CONTAINER_DEBUG_LEVEL > 0
         }
-        template <std::_Span_compatible_range<First> _Rng, std::_Span_compatible_range<Ty>... OtherRng>
+        template <Span_compatible_range<First> _Rng, Span_compatible_range<Ty>... OtherRng>
             constexpr explicit(Extent != std::dynamic_extent) span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
                     : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range))) {
 #if _CONTAINER_DEBUG_LEVEL > 0
@@ -478,14 +483,6 @@ namespace xk
 
         XK_SPAN_TUPLE_NODISCARD constexpr reverse_iterator rend() const noexcept {
             return reverse_iterator{ begin() };
-        }
-
-        XK_SPAN_TUPLE_NODISCARD constexpr pointer _Unchecked_begin() const noexcept {
-            return m_data;
-        }
-
-        XK_SPAN_TUPLE_NODISCARD constexpr pointer _Unchecked_end() const noexcept {
-            return m_data + m_size;
         }
 
     private:
