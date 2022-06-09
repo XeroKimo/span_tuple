@@ -120,6 +120,17 @@ namespace xk
         pointer _Myptr = nullptr;
     };
 
+    template <class>
+    inline constexpr bool Is_span_v = false;
+
+    template <class _Ty, size_t _Extent>
+    inline constexpr bool Is_span_v<std::span<_Ty, _Extent>> = true;
+
+    template <class>
+    inline constexpr bool Is_std_array_v = false;
+
+    template <class _Ty, size_t _Size>
+    inline constexpr bool Is_std_array_v<std::array<_Ty, _Size>> = true;
 
     template <class _It, class _Ty>
     concept Span_compatible_iterator = std::contiguous_iterator<_It>
@@ -132,8 +143,8 @@ namespace xk
     template <class _Rng, class _Ty>
     concept Span_compatible_range =
         !std::is_array_v<std::remove_cvref_t<_Rng>>
-        && !std::_Is_span_v<std::remove_cvref_t<_Rng>>
-        && !std::_Is_std_array_v<std::remove_cvref_t<_Rng>>
+        && !Is_span_v<std::remove_cvref_t<_Rng>>
+        && !Is_std_array_v<std::remove_cvref_t<_Rng>>
         && ::std::ranges::contiguous_range<_Rng>
         && ::std::ranges::sized_range<_Rng>
         && (::std::ranges::borrowed_range<_Rng> || std::is_const_v<_Ty>)
@@ -289,7 +300,7 @@ namespace xk
 
         XK_SPAN_TUPLE_NODISCARD constexpr auto first(const size_type _Count) const noexcept
         {
-            assert(_Count <= m_size, "Count out of range in span::first(count)");
+            assert(_Count <= m_size && "Count out of range in span::first(count)");
             return first_impl(_Count, std::make_index_sequence<sizeof...(Ty)>());
         }
 

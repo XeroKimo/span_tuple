@@ -48,6 +48,11 @@ int main()
         }
     }
 
+    for(auto val : span)
+    {
+
+    }
+
     auto [ispan, fspan] = span;
     std::tuple<int*, float*> t;
 
