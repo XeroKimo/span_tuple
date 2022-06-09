@@ -56,11 +56,11 @@ int main()
 
     auto iifront = span.front<int>();
 
-    //for(auto r : span)
-    //{
-    //    //std::cout << r << " ";
-    //}
+    xk::span_tuple<int, 2, float> subspan = span.first<2>();
+    xk::span_tuple<int, 2, float> subspan2 = span.last<2>();
+    xk::span_tuple<int, 2, float> subspan3 = span.subspan<1, 2>();
 
-
-    //std::span<int, 4> a3;
+    xk::span_tuple<int, std::dynamic_extent, float> subspan4 = span.first(3);
+    xk::span_tuple<int, std::dynamic_extent, float> subspan5 = span.last(3);
+    xk::span_tuple<int, std::dynamic_extent, float> subspan6 = subspan4.subspan(1);
 }

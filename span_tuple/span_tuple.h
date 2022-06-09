@@ -337,6 +337,83 @@ namespace xk
             }, m_data);
         }
 
+            // [span.sub] Subviews
+        template <size_t _Count>
+        _NODISCARD constexpr auto first() const noexcept /* strengthened */ {
+            if constexpr(Extent != std::dynamic_extent) {
+                static_assert(_Count <= Extent, "Count out of range in span::first()");
+            }
+#if _CONTAINER_DEBUG_LEVEL > 0
+            else {
+                _STL_VERIFY(_Count <= m_size, "Count out of range in span::first()");
+            }
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+
+
+            return first_impl<_Count>(std::make_index_sequence<sizeof...(Ty)>());
+        }
+
+        _NODISCARD constexpr auto first(const size_type _Count) const noexcept
+            /* strengthened */ {
+#if _CONTAINER_DEBUG_LEVEL > 0
+            _STL_VERIFY(_Count <= m_size, "Count out of range in span::first(count)");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+            return first_impl(_Count, std::make_index_sequence<sizeof...(Ty)>());
+        }
+
+        template <size_t _Count>
+        _NODISCARD constexpr auto last() const noexcept /* strengthened */ {
+            if constexpr(Extent != std::dynamic_extent) {
+                static_assert(_Count <= Extent, "Count out of range in span::last()");
+            }
+#if _CONTAINER_DEBUG_LEVEL > 0
+            else {
+                _STL_VERIFY(_Count <= m_size, "Count out of range in span::last()");
+            }
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+            return last_impl<_Count>(std::make_index_sequence<sizeof...(Ty)>());
+        }
+
+        _NODISCARD constexpr auto last(const size_type _Count) const noexcept /* strengthened */ {
+#if _CONTAINER_DEBUG_LEVEL > 0
+            _STL_VERIFY(_Count <= m_size, "Count out of range in span::last(count)");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+            return last_impl(_Count, std::make_index_sequence<sizeof...(Ty)>());
+        }
+
+        template <size_t _Offset, size_t _Count = std::dynamic_extent>
+        _NODISCARD constexpr auto subspan() const noexcept /* strengthened */ {
+            if constexpr(Extent != std::dynamic_extent) {
+                static_assert(_Offset <= Extent, "Offset out of range in span::subspan()");
+                static_assert(
+                    _Count == std::dynamic_extent || _Count <= Extent - _Offset, "Count out of range in span::subspan()");
+            }
+#if _CONTAINER_DEBUG_LEVEL > 0
+            else {
+                _STL_VERIFY(_Offset <= m_size, "Offset out of range in span::subspan()");
+
+                if constexpr(_Count != std::dynamic_extent) {
+                    _STL_VERIFY(_Count <= m_size - _Offset, "Count out of range in span::subspan()");
+                }
+            }
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+            using _ReturnType = span_tuple<First,
+                _Count != std::dynamic_extent ? _Count : (Extent != std::dynamic_extent ? Extent - _Offset : std::dynamic_extent), Ty...>;
+
+            return subspan_impl<_Offset, _Count>(std::make_index_sequence<sizeof...(Ty)>());
+        }
+
+        _NODISCARD constexpr auto subspan(const size_type _Offset, const size_type _Count = std::dynamic_extent) const noexcept
+            /* strengthened */ {
+#if _CONTAINER_DEBUG_LEVEL > 0
+            _STL_VERIFY(_Offset <= m_size, "Offset out of range in span::subspan(offset, count)");
+            _STL_VERIFY(_Count == std::dynamic_extent || _Count <= m_size - _Offset,
+                "Count out of range in span::subspan(offset, count)");
+#endif // _CONTAINER_DEBUG_LEVEL > 0
+            using _ReturnType = span_tuple<First, std::dynamic_extent, Ty...>;
+            return subspan_impl(_Offset, _Count, std::make_index_sequence<sizeof...(Ty)>());
+        }
+
     public:
         constexpr reference front() const noexcept
         {
@@ -450,6 +527,44 @@ namespace xk
 
         _NODISCARD constexpr pointer _Unchecked_end() const noexcept {
             return m_data + m_size;
+        }
+
+    private:
+        template<size_t Count, class T, T... Indexs>
+        _NODISCARD constexpr auto first_impl(std::index_sequence<Indexs...>) const noexcept
+        {
+            return span_tuple<First, Count, Ty...>{std::get<0>(m_data), Count, std::get<Indexs + 1>(m_data)...};
+        }
+
+        template<class T, T... Indexs>
+        _NODISCARD constexpr auto first_impl(size_t count, std::index_sequence<Indexs...>) const noexcept
+        {
+            return span_tuple<First, std::dynamic_extent, Ty...>{std::get<0>(m_data), count, std::get<Indexs + 1>(m_data)...};
+        }
+        template<size_t Count, class T, T... Indexs>
+        _NODISCARD constexpr auto last_impl(std::index_sequence<Indexs...>) const noexcept
+        {
+            return span_tuple<First, Count, Ty...>{std::get<0>(m_data) + (m_size - Count), Count, (std::get<Indexs + 1>(m_data) + (m_size - Count))...};
+        }
+
+        template<class T, T... Indexs>
+        _NODISCARD constexpr auto last_impl(size_t count, std::index_sequence<Indexs...>) const noexcept
+        {
+            return span_tuple<First, std::dynamic_extent, Ty...>{std::get<0>(m_data) + (m_size - count), count, (std::get<Indexs + 1>(m_data) + (m_size - count))...};
+        }
+
+        template<size_t Offset, size_t Count, class T, T... Indexs>
+        _NODISCARD constexpr auto subspan_impl(std::index_sequence<Indexs...>) const noexcept
+        {
+            using _ReturnType = span_tuple<First,
+                Count != std::dynamic_extent ? Count : (Extent != std::dynamic_extent ? Extent - Offset : std::dynamic_extent), Ty...>;
+            return _ReturnType{ std::get<0>(m_data) + Offset, Count == std::dynamic_extent ? m_size - Offset : Count, (std::get<Indexs + 1>(m_data) + Offset)... };
+        }
+
+        template<class T, T... Indexs>
+        _NODISCARD constexpr auto subspan_impl(size_t offset, size_t count, std::index_sequence<Indexs...>) const noexcept
+        {
+            return span_tuple<First, std::dynamic_extent, Ty...>{ std::get<0>(m_data) + offset, count == std::dynamic_extent ? m_size - offset : count, (std::get<Indexs + 1>(m_data) + offset)... };
         }
     };
 
