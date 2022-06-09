@@ -25,10 +25,6 @@ namespace xk
         using reference = std::tuple<First&, Others&...>;
 
         _NODISCARD constexpr reference operator*() const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot dereference value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Myptr) < std::get<0>(_Myend), "cannot dereference end span iterator");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
             return std::apply([](auto&&... elements)
             {
                 return reference(*elements...);
@@ -36,18 +32,10 @@ namespace xk
         }
 
         _NODISCARD constexpr pointer operator->() const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot dereference value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Myptr) < std::get<0>(_Myend), "cannot dereference end span iterator");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
             return _Myptr;
         }
 
         constexpr span_tuple_iterator& operator++() noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot increment value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Myptr) < std::get<0>(_Myend), "cannot increment span iterator past end");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
             std::apply([](auto*&... ptrs)
             {
                 (++ptrs, ...);
@@ -62,11 +50,6 @@ namespace xk
         }
 
         constexpr span_tuple_iterator& operator--() noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(std::get<0>(_Mybegin), "cannot decrement value-initialized span iterator");
-            _STL_VERIFY(std::get<0>(_Mybegin) < std::get<0>(_Myptr), "cannot decrement span iterator before begin");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
-
             std::apply([](auto*&... ptrs)
             {
                 (--ptrs, ...);
@@ -80,25 +63,7 @@ namespace xk
             return _Tmp;
         }
 
-        constexpr void _Verify_offset([[maybe_unused]] const difference_type _Off) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            if(_Off != 0) {
-                _STL_VERIFY(std::get<0>(_Mybegin), "cannot seek value-initialized span iterator");
-            }
-
-            if(_Off < 0) {
-                _STL_VERIFY(std::get<0>(_Myptr) - std::get<0>(_Mybegin) >= -_Off, "cannot seek span iterator before begin");
-            }
-
-            if(_Off > 0) {
-                _STL_VERIFY(std::get<0>(_Myend) - std::get<0>(_Myptr) >= _Off, "cannot seek span iterator after end");
-            }
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
-        }
-
         constexpr span_tuple_iterator& operator+=(const difference_type _Off) noexcept {
-            _Verify_offset(_Off);
-
             std::apply([=](auto*&... ptrs)
             {
                 ((ptrs += _Off), ...);
@@ -118,7 +83,6 @@ namespace xk
         }
 
         constexpr span_tuple_iterator& operator-=(const difference_type _Off) noexcept {
-            _Verify_offset(-_Off);
 
             std::apply([=](auto*&... ptrs)
             {
@@ -134,10 +98,6 @@ namespace xk
         }
 
         _NODISCARD constexpr difference_type operator-(const span_tuple_iterator& _Right) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(
-                _Mybegin == _Right._Mybegin && _Myend == _Right._Myend, "cannot subtract incompatible span iterators");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
             return _Myptr - _Right._Myptr;
         }
 
@@ -146,28 +106,13 @@ namespace xk
         }
 
         _NODISCARD constexpr bool operator==(const span_tuple_iterator& _Right) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(_Mybegin == _Right._Mybegin && _Myend == _Right._Myend,
-                "cannot compare incompatible span iterators for equality");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
+
             return _Myptr == _Right._Myptr;
         }
 
         _NODISCARD constexpr std::strong_ordering operator<=>(const span_tuple_iterator& _Right) const noexcept {
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            _STL_VERIFY(
-                _Mybegin == _Right._Mybegin && _Myend == _Right._Myend, "cannot compare incompatible span iterators");
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
             return _Myptr <=> _Right._Myptr;
         }
-
-#if _ITERATOR_DEBUG_LEVEL >= 1
-        friend constexpr void _Verify_range(const span_tuple_iterator& _First, const span_tuple_iterator& _Last) noexcept {
-            _STL_VERIFY(_First._Mybegin == _Last._Mybegin && _First._Myend == _Last._Myend,
-                "span iterators from different views do not form a range");
-            _STL_VERIFY(_First._Myptr <= _Last._Myptr, "span iterator range transposed");
-        }
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
 
         using _Prevent_inheriting_unwrap = span_tuple_iterator;
 
@@ -175,17 +120,11 @@ namespace xk
             return _Myptr;
         }
 
-        static constexpr bool _Unwrap_when_unverified = _ITERATOR_DEBUG_LEVEL == 0;
-
         constexpr void _Seek_to(const pointer _It) noexcept {
             _Myptr = _It;
         }
 
         pointer _Myptr = nullptr;
-#if _ITERATOR_DEBUG_LEVEL >= 1
-        pointer _Mybegin = nullptr;
-        pointer _Myend = nullptr;
-#endif // _ITERATOR_DEBUG_LEVEL >= 1
     };
 
     template<class First, size_t Extent, class... Ty>
@@ -514,11 +453,7 @@ namespace xk
                 ((ptrs += size), ...);
                 return std::tuple(ptrs...);
         }, m_data);
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            return { m_data, m_data, _End };
-#else // ^^^ _ITERATOR_DEBUG_LEVEL >= 1 ^^^ // vvv _ITERATOR_DEBUG_LEVEL == 0 vvv
             return { m_data };
-#endif // _ITERATOR_DEBUG_LEVEL
         }
 
         _NODISCARD constexpr iterator end() const noexcept {
@@ -527,11 +462,7 @@ namespace xk
                 ((ptrs += size), ...);
                 return std::tuple(ptrs...);
             }, m_data);
-#if _ITERATOR_DEBUG_LEVEL >= 1
-            return { _End, m_data, _End };
-#else // ^^^ _ITERATOR_DEBUG_LEVEL >= 1 ^^^ // vvv _ITERATOR_DEBUG_LEVEL == 0 vvv
             return { _End };
-#endif // _ITERATOR_DEBUG_LEVEL
         }
 
         _NODISCARD constexpr reverse_iterator rbegin() const noexcept {
