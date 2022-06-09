@@ -4,8 +4,6 @@
 #include <array>
 #include <cassert>
 
-//MAYBE TODO: Create a NO DISCARD macro in c
-
 #if __has_cpp_attribute(nodiscard)
 #define XK_SPAN_TUPLE_NODISCARD [[nodiscard]]
 #else
