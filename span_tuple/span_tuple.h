@@ -766,29 +766,35 @@ namespace xk
         template<size_t Index>
         constexpr size_t size() const noexcept 
         { 
-            return (std::get<Index>(m_data) == nullptr) ? 0 : m_size;
+            return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : m_size;
         }
 
         template<class Index>
         constexpr size_t size() const noexcept
         {
-            return (std::get<Index>(m_data) == nullptr) ? 0 : m_size;
+            return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : m_size;
         }
 
         template<size_t Index>
-        constexpr size_t size_bytes() const noexcept { return (std::get<Index>(m_data) == nullptr) ? 0 : sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
+        constexpr size_t size_bytes() const noexcept 
+        {
+            return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : sizeof(std::tuple_element_t<Index, value_type>) * m_size;
+        }
 
         template<class Index>
             requires std::same_as<Index, First> || (std::same_as<Index, span_element_t<Ty>> || ...)
-        constexpr size_t size_bytes() const noexcept { return (std::get<Index>(m_data) == nullptr) ? 0 : sizeof(Index) * m_size; }
+        constexpr size_t size_bytes() const noexcept
+        {
+            return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : sizeof(std::tuple_element_t<Index, value_type>) * m_size;
+        }
 
         constexpr bool empty() const noexcept { return m_size == 0; }
 
         template<size_t Index>
-        constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr; }
+        constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr || m_size == 0; }
 
         template<class Index>     
-        constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr; }
+        constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr || m_size == 0; }
 
         template<size_t Index, class First, size_t Extent, class... Ty>
         friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
