@@ -238,6 +238,12 @@ namespace xk
     public:
         constexpr span_tuple() noexcept requires (Extent == 0 || Extent == std::dynamic_extent) = default;
 
+        /// <summary>
+        /// begin iterator + size based constructor
+        /// </summary>
+        /// <param name="FirstIt"> The iterator for the first element </param>
+        /// <param name="Count"> The size of the span </param>
+        /// <param name="otherIt..."> The iterators for the other elements. All assumed to have the same length as Count </param>
         template <Span_compatible_iterator<First> It, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
             : base(std::forward_as_tuple(std::to_address(FirstIt), std::to_address(otherIt)...), Count) 
@@ -249,6 +255,13 @@ namespace xk
             }
         }
 
+
+        /// <summary>
+        /// begin + end iterator based constructor
+        /// </summary>
+        /// <param name="_First"> The iterator for the first element </param>
+        /// <param name="_Last"> The end point for the first iterator </param>
+        /// <param name="otherIt..."> The iterators for the other elements. Assumed to have the same range as (_Last - _First) </param>
         template <Span_compatible_iterator<First> _It, Span_compatible_sentinel<_It> _Sentinel, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(_It _First, _Sentinel _Last, OtherIt... otherIt)
             noexcept(noexcept(_Last - _First)) // strengthened
@@ -261,6 +274,12 @@ namespace xk
             }
         }
 
+
+        /// <summary>
+        /// c-array based constructor
+        /// </summary>
+        /// <param name="first"> The c-array for the first element </param>
+        /// <param name="elm"> The c-arrays for the other elements </param>
         template<size_t Size>
             requires(Extent == std::dynamic_extent || Extent == Size)
         span_tuple(First (&first)[Size], Ty (&...elm)[Size]) :
@@ -269,6 +288,11 @@ namespace xk
 
         }
 
+        /// <summary>
+        /// std::array based constructor
+        /// </summary>
+        /// <param name="first"> The std::array for the first element </param>
+        /// <param name="elm"> The std::arrays for the other elements </param>
         template <class OtherFirst, class... OtherTy, size_t Size>
             requires (Extent == std::dynamic_extent || Extent == Size) &&
                 std::is_convertible_v<OtherFirst(*)[], First(*)[]> &&
@@ -279,6 +303,12 @@ namespace xk
 
         }
 
+
+        /// <summary>
+        /// const std::array based constructor
+        /// </summary>
+        /// <param name="first"> The std::array for the first element </param>
+        /// <param name="elm"> The std::arrays for the other elements </param>
         template <class OtherFirst, class... OtherTy, size_t Size>
             requires (Extent == std::dynamic_extent || Extent == Size) &&
                 std::is_convertible_v<const OtherFirst(*)[], First(*)[]> &&
@@ -289,6 +319,10 @@ namespace xk
 
         }
 
+        /// <summary>
+        /// A copy / converting constructor that can take in other sized span_tuples. Cannot take in span_tuples with optional parameters
+        /// </summary>
+        /// <param name="other"> </param>
         template <class OtherFirst, class... OtherTy, size_t OtherExtent>
             requires (Extent == std::dynamic_extent || OtherExtent == std::dynamic_extent || Extent == OtherExtent) &&
                 std::is_convertible_v<OtherFirst(*)[], First(*)[]> &&
@@ -305,6 +339,11 @@ namespace xk
 
         }
 
+        /// <summary>
+        /// Ranged based constructor
+        /// </summary>
+        /// <param name="first"> The range for the first element </param>
+        /// <param name="elm"> The ranges for the other elements </param>
         template <Span_compatible_range<First> _Rng, Span_compatible_range<Ty>... OtherRng>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
             : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range))) 
@@ -383,6 +422,7 @@ namespace xk
         }
 
     public:
+        //Gets all the elements of a given offset
         constexpr reference operator[](size_t offset) const noexcept
         {
             assert(offset < m_size && "span index out of range");
@@ -392,6 +432,7 @@ namespace xk
             }, m_data);
         }
 
+        //Gets the first element of all spans
         constexpr reference front() const noexcept
         {
             assert(m_size > 0 && "front of empty span");
@@ -401,6 +442,7 @@ namespace xk
             }, m_data);
         }
 
+        //Gets the first element of a given span
         template<size_t Index>
         constexpr std::tuple_element_t<Index, reference> front() const noexcept
         {
@@ -408,6 +450,7 @@ namespace xk
             return *get<Index>(m_data);
         }
 
+        //Gets the first element of a given span
         template<class Index>
         constexpr Index& front() const noexcept
         {
@@ -415,6 +458,7 @@ namespace xk
             return *get<Index*>(m_data);
         }
 
+        //Gets the last element of all spans
         constexpr reference back() const noexcept
         {
             assert(m_size > 0 && "back of empty span");
@@ -424,6 +468,7 @@ namespace xk
             }, m_data);
         }
 
+        //Gets the last element of a given span
         template<size_t Index>
         constexpr std::tuple_element_t<Index, reference> back() const noexcept
         {
@@ -431,6 +476,7 @@ namespace xk
             return get<Index>(m_data)[m_size - 1];
         }
 
+        //Gets the last element of a given span
         template<class Index>
         constexpr Index& back() const noexcept
         {
@@ -438,36 +484,45 @@ namespace xk
             return get<Index*>(m_data)[m_size - 1];
         }
 
+        //Gets pointer to the beginning of all span at a given tuple index
         constexpr pointer data() const noexcept { return m_data; }
 
+        //Gets pointer to the beginning of all span at a given tuple index
         template<size_t Index>
         constexpr std::tuple_element_t<Index, pointer> data() const noexcept 
         { 
             return get<Index>(m_data);
         }
 
+        //Gets pointer to the beginning of all span at a given tuple index
         template<class Index>
         constexpr Index* data() const noexcept 
         { 
             return get<Index*>(m_data);
         }
 
+        //Gets the size of the span
         constexpr size_t size() const noexcept { return m_size; }
 
+        //Gets the size of the span
         template<size_t Index>
         constexpr size_t size() const noexcept
         {
             return m_size;
         }
 
+        //Gets the size of the span
         template<class Index>
         constexpr size_t size() const noexcept
         {
             return m_size;
         }
+
+        //Gets the total size in bytes that a given span is occupying
         template<size_t Index>
         constexpr size_t size_bytes() const noexcept { return sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
 
+        //Gets the total size in bytes that a given span is occupying
         template<class Index>
             requires std::same_as<Index, First> || (std::same_as<Index, Ty> || ...)
         constexpr size_t size_bytes() const noexcept { return sizeof(Index) * m_size; }
@@ -480,9 +535,11 @@ namespace xk
         template<class Index>
         constexpr bool empty() const noexcept { return m_size == 0; }
 
+    //Creates a std::span from a span_tuple at the given Index
         template<size_t Index, class First, size_t Extent, class... Ty>
         friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
 
+    //Creates a std::span from a span_tuple at the given Index
         template<class Index, class First, size_t Extent, class... Ty>
         friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
 
@@ -694,12 +751,25 @@ namespace xk
     public:
         constexpr span_tuple() noexcept = default;
 
+        /// <summary>
+        /// begin iterator + size based constructor
+        /// </summary>
+        /// <param name="FirstIt"> The iterator for the first element </param>
+        /// <param name="Count"> The size of the span </param>
+        /// <param name="otherIt..."> The iterators for the other elements. All assumed to have the same length as Count. Optional params can be xk::nullopt to signify 0 length </param>
         template <Span_compatible_iterator<First> It, Span_compatible_optional_iterator<Ty>... OtherIt>
         constexpr span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
             : base(std::forward_as_tuple(std::to_address(FirstIt), std::to_address(optional_iterator<OtherIt, Ty>(otherIt))...), Count)
         {
         }
 
+
+        /// <summary>
+        /// begin + end iterator based constructor
+        /// </summary>
+        /// <param name="_First"> The iterator for the first element </param>
+        /// <param name="_Last"> The end point for the first iterator </param>
+        /// <param name="otherIt..."> The iterators for the other elements. Assumed to have the same range as (_Last - _First). Optional params can be xk::nullopt to signify 0 length </param>
         template <Span_compatible_iterator<First> _It, Span_compatible_sentinel<_It> _Sentinel, Span_compatible_optional_iterator<Ty>... OtherIt>
         constexpr span_tuple(_It _First, _Sentinel _Last, OtherIt... otherIt) noexcept(noexcept(_Last - _First)) // strengthened
             : base(std::forward_as_tuple(std::to_address(_First), std::to_address(optional_iterator<OtherIt, Ty>(otherIt))...), static_cast<size_type>(_Last - _First))
@@ -707,6 +777,11 @@ namespace xk
 
         }
 
+        /// <summary>
+        /// c-array based constructor
+        /// </summary>
+        /// <param name="first"> The c-array for the first element </param>
+        /// <param name="elm"> The c-arrays for the other elements. Optional params can be xk::nullopt to signify 0 length </param>
         template<size_t Size, Span_compatible_optional_array<Size, Ty>... OtherTy>
         span_tuple(First(&first)[Size], OtherTy&... Ty) :
             base(std::forward_as_tuple(first, optional_array<OtherTy, Ty, Size>(Ty).data()...), Size)
@@ -714,6 +789,12 @@ namespace xk
 
         }
 
+
+        /// <summary>
+        /// std::array based constructor
+        /// </summary>
+        /// <param name="first"> The std::array for the first element </param>
+        /// <param name="elm"> The std::arrays for the other elements. Optional params can be xk::nullopt to signify 0 length </param>
         template <class OtherFirst, size_t Size, Span_compatible_optional_std_array<Ty, Size>... OtherTy>
             requires std::is_convertible_v<OtherFirst(*)[], First(*)[]>
         span_tuple(std::array<OtherFirst, Size>& first, OtherTy&... elm) :
@@ -722,6 +803,11 @@ namespace xk
 
         }
 
+        /// <summary>
+        /// const std::array based constructor
+        /// </summary>
+        /// <param name="first"> The std::array for the first element </param>
+        /// <param name="elm"> The std::arrays for the other elements. Optional params can be xk::nullopt to signify 0 length </param>
         template <class OtherFirst, size_t Size, Span_compatible_optional_const_std_array<Ty, Size>... OtherTy>
             requires std::is_convertible_v<const OtherFirst(*)[], First(*)[]>
         span_tuple(const std::array<OtherFirst, Size>& first, const OtherTy&... elm) :
@@ -730,6 +816,10 @@ namespace xk
 
         }
 
+        /// <summary>
+        /// A copy / converting constructor that can take in other sized span_tuples
+        /// </summary>
+        /// <param name="other"> </param>
         template <class OtherFirst, class... OtherTy, size_t OtherExtent>
             requires std::is_convertible_v<OtherFirst(*)[], First(*)[]> &&
             (std::is_convertible_v<OtherTy(*)[], Ty(*)[]> && ...)
@@ -739,6 +829,12 @@ namespace xk
 
         }
 
+
+        /// <summary>
+        /// Ranged based constructor (Not implemented)
+        /// </summary>
+        /// <param name="first"> The range for the first element </param>
+        /// <param name="elm"> The ranges for the other elements </param>
         //template <Span_compatible_range<First> _Rng, Span_compatible_range<Ty>... OtherRng>
         //constexpr span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
         //    : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range)))
@@ -747,40 +843,48 @@ namespace xk
         //}
 
     public:
+        //Gets pointers to the beginning of all spans
         constexpr pointer data() const noexcept { return m_data; }
 
+        //Gets pointer to the beginning of all span at a given tuple index
         template<size_t Index>
         constexpr std::tuple_element_t<Index, pointer> data() const noexcept
         {
             return get<Index>(m_data);
         }
 
+        //Gets pointer to the beginning of all span at a given tuple index
         template<class Index>
         constexpr Index* data() const noexcept
         {
             return get<Index*>(m_data);
         }
 
+        //Gets the size of the span
         constexpr size_t size() const noexcept { return m_size; }
 
+        //Gets the size for a given span
         template<size_t Index>
         constexpr size_t size() const noexcept 
         { 
             return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : m_size;
         }
 
+        //Gets the size for a given span
         template<class Index>
         constexpr size_t size() const noexcept
         {
             return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : m_size;
         }
 
+        //Gets the total size in bytes that a given span is occupying
         template<size_t Index>
         constexpr size_t size_bytes() const noexcept 
         {
             return (std::get<Index>(m_data) == nullptr || m_size == 0) ? 0 : sizeof(std::tuple_element_t<Index, value_type>) * m_size;
         }
 
+        //Gets the total size in bytes that a given span is occupying
         template<class Index>
             requires std::same_as<Index, First> || (std::same_as<Index, span_element_t<Ty>> || ...)
         constexpr size_t size_bytes() const noexcept
@@ -796,9 +900,11 @@ namespace xk
         template<class Index>     
         constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr || m_size == 0; }
 
+    //Creates a std::span from a span_tuple at the given Index
         template<size_t Index, class First, size_t Extent, class... Ty>
         friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
 
+    //Creates a std::span from a span_tuple at the given Index
         template<class Index, class First, size_t Extent, class... Ty>
         friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
     };
@@ -806,12 +912,14 @@ namespace xk
     template<class First, size_t Extent>
     class span_tuple<First, Extent>;
 
+    //Creates a std::span from a span_tuple at the given Index
     template<size_t Index, class First, size_t Extent, class... Ty>
     constexpr auto get(span_tuple<First, Extent, Ty...> span)
     {
         return std::span<std::tuple_element_t<Index, typename span_tuple<First, Extent, Ty...>::value_type>, Extent>(get<Index>(span.data()), span.size());
     }
 
+    //Creates a std::span from a span_tuple at the given Index
     template<class Index, class First, size_t Extent, class... Ty>
     constexpr auto get(span_tuple<First, Extent, Ty...> span)
     {

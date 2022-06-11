@@ -70,6 +70,8 @@ int main()
     float arr2[4] = { 2, 3, 65, 1};
     xk::span_tuple<int, std::dynamic_extent, xk::optional<float>> someSpans(a1.begin(), a1.size(), arr2);
 
+    auto [ispan2, optfloatSpan] = someSpans;
+
     std::array<float, 4>& test3 = a2;
     //auto tests = std::to_address(xk::nullopt);
 
