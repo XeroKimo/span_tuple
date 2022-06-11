@@ -3,6 +3,8 @@ An extention to span. If span's intent is to be a non-owning range of one array-
 
 The API works like a mix of [std::span](https://en.cppreference.com/w/cpp/container/span) and [std::tuple](https://en.cppreference.com/w/cpp/utility/tuple), all constructors and the interface mirrors std::span, but since there are multiple types, we can turn them into individual spans using get like std::tuples.
 
+xk::span_tuple currently assumes that either all spans are sized N or are sized 0. Currently thinking of an API to allow support for optional spans
+
 See the [wiki](https://github.com/XeroKimo/span_tuple/wiki) for more info 
 # Requires
 - C++20
