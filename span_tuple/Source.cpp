@@ -7,7 +7,6 @@ int main()
     std::array<int, 4> a1 = { 1, 2, 3, 4};
     std::array<float, 4> a2 = { 2.3f, 34.f, 12.3f, 32.f};
     int* ar = a1.data();
-    int arr[4] = {};
     xk::span_tuple<int, 4, float> span(a1, a2);
 
     int* data = get<0>(span.data());
@@ -20,9 +19,6 @@ int main()
 
     xk::span_tuple<int, std::dynamic_extent, float> span4(&ar[1], 2, a2.data());
     xk::span_tuple<int, std::dynamic_extent, float> span5(a1.begin(), a1.end(), a2.begin());
-
-    xk::span_tuple<int, std::dynamic_extent, float> r6;
-    r6.back();
 
     float& f2= span.back<1>();
 
@@ -69,4 +65,13 @@ int main()
     xk::span_tuple<int, std::dynamic_extent, float> subspan4 = span.first(3);
     xk::span_tuple<int, std::dynamic_extent, float> subspan5 = span.last(3);
     xk::span_tuple<int, std::dynamic_extent, float> subspan6 = subspan4.subspan(1);
+
+    int arr[4] = {};
+    float arr2[4] = { 2, 3, 65, 1};
+    xk::span_tuple<int, std::dynamic_extent, xk::optional<float>> someSpans(a1.begin(), a1.size(), arr2);
+
+    std::array<float, 4>& test3 = a2;
+    //auto tests = std::to_address(xk::nullopt);
+
+    //xk::span_element_t<xk::optional<float>> test2;
 }

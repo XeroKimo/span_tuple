@@ -137,6 +137,13 @@ namespace xk
     template <class _Ty, size_t _Size>
     inline constexpr bool Is_std_array_v<std::array<_Ty, _Size>> = true;
 
+    template<class>
+    constexpr size_t std_array_size = 0;
+
+    template<class Ty, size_t Size>
+    constexpr size_t std_array_size<std::array<Ty, Size>> = Size;
+
+
     template <class _It, class _Ty>
     concept Span_compatible_iterator = std::contiguous_iterator<_It>
         && std::is_convertible_v<std::remove_reference_t<std::iter_reference_t<_It>>(*)[], _Ty(*)[]>;
@@ -154,6 +161,27 @@ namespace xk
         && ::std::ranges::sized_range<_Rng>
         && (::std::ranges::borrowed_range<_Rng> || std::is_const_v<_Ty>)
         && std::is_convertible_v<std::remove_reference_t<::std::ranges::range_reference_t<_Rng>>(*)[], _Ty(*)[]>;
+
+    template<class Ty>
+    struct optional
+    {
+        using element_type = Ty;
+        using value_type = std::remove_cv_t<Ty>;
+        using pointer = Ty*;
+        using const_pointer = const Ty*;
+        using reference = Ty&;
+        using const_reference = const Ty&;
+    };
+
+    template<class>
+    constexpr bool is_optional_parameter = false;
+
+    template<class Ty>
+    constexpr bool is_optional_parameter<optional<Ty>> = true;
+
+    template<class... Ty>
+    constexpr bool is_any_optional = (is_optional_parameter<Ty> || ...);
+
 
     template<class First, size_t Extent, class... Ty>
     struct Extent_type
@@ -212,7 +240,7 @@ namespace xk
 
         template <Span_compatible_iterator<First> It, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
-            : base(std::forward_as_tuple(std::to_address(FirstIt + Count), std::to_address(otherIt + Count)...), Count) 
+            : base(std::forward_as_tuple(std::to_address(FirstIt), std::to_address(otherIt)...), Count) 
         {
             if constexpr(Extent != std::dynamic_extent) 
             {
@@ -264,9 +292,9 @@ namespace xk
         template <class OtherFirst, class... OtherTy, size_t OtherExtent>
             requires (Extent == std::dynamic_extent || OtherExtent == std::dynamic_extent || Extent == OtherExtent) &&
                 std::is_convertible_v<OtherFirst(*)[], First(*)[]> &&
-                (std::is_convertible_v<OtherTy(*)[], Ty(*)[]> && ...)
-            constexpr explicit(Extent != std::dynamic_extent && OtherExtent == std::dynamic_extent)
-        span_tuple(const span_tuple<OtherFirst, OtherExtent, OtherTy...>& other) noexcept
+                (std::is_convertible_v<OtherTy(*)[], Ty(*)[]> && ...) &&
+                (!is_any_optional<OtherTy...>)
+        constexpr explicit(Extent != std::dynamic_extent && OtherExtent == std::dynamic_extent) span_tuple(const span_tuple<OtherFirst, OtherExtent, OtherTy...>& other) noexcept
             : base(other.data(), other.size())
         {
             if constexpr(Extent != std::dynamic_extent) 
@@ -276,6 +304,7 @@ namespace xk
             }
 
         }
+
         template <Span_compatible_range<First> _Rng, Span_compatible_range<Ty>... OtherRng>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
             : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range))) 
@@ -426,12 +455,29 @@ namespace xk
         constexpr size_t size() const noexcept { return m_size; }
 
         template<size_t Index>
+        constexpr size_t size() const noexcept
+        {
+            return m_size;
+        }
+
+        template<class Index>
+        constexpr size_t size() const noexcept
+        {
+            return m_size;
+        }
+        template<size_t Index>
         constexpr size_t size_bytes() const noexcept { return sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
 
         template<class Index>
             requires std::same_as<Index, First> || (std::same_as<Index, Ty> || ...)
         constexpr size_t size_bytes() const noexcept { return sizeof(Index) * m_size; }
 
+        constexpr bool empty() const noexcept { return m_size == 0; }
+
+        template<size_t Index>
+        constexpr bool empty() const noexcept { return m_size == 0; }
+
+        template<class Index>
         constexpr bool empty() const noexcept { return m_size == 0; }
 
         template<size_t Index, class First, size_t Extent, class... Ty>
@@ -511,6 +557,245 @@ namespace xk
         }
     };
 
+    template<class Ty>
+    struct span_element_type
+    {
+        using type = Ty;
+    };
+
+    template<class Ty>
+    struct span_element_type<optional<Ty>>
+    {
+        using type = Ty;
+    };
+
+    template<class Ty>
+    using span_element_t = typename span_element_type<Ty>::type;
+
+    struct null_optional_type 
+    {
+    };
+
+    constexpr null_optional_type nullopt;
+
+    template<class>
+    constexpr bool is_null_opt = false;
+
+    template<>
+    constexpr bool is_null_opt<null_optional_type> = true;
+
+    template<class It, class Ty>
+    struct optional_iterator
+    {
+        using pointer = typename Ty::pointer;
+        using element_type = typename Ty::element_type;
+        using difference_type = std::ptrdiff_t;
+
+        optional_iterator(It it) : val(it) {}
+
+        It val = {};
+
+        operator It () { return val; }
+        constexpr pointer operator->() noexcept 
+        {
+            return std::to_address(val); 
+        }
+        constexpr pointer operator->() const noexcept
+        {
+            return std::to_address(val);
+        }
+    };
+
+    template<class Ty>
+    struct optional_iterator<null_optional_type, Ty>
+    {
+        using pointer = typename Ty::pointer;
+        using element_type = typename Ty::element_type;
+        using difference_type = std::ptrdiff_t;
+
+        optional_iterator(null_optional_type) {};
+        constexpr pointer operator->() noexcept
+        {
+            return nullptr;
+        }
+        constexpr pointer operator->() const noexcept
+        {
+            return nullptr;
+        }
+    };
+
+    template<class It, class Ty, size_t Size>
+    struct optional_array
+    {
+        using pointer = typename Ty::pointer;
+
+        optional_array(Ty::element_type (&arr)[Size]) : val(arr) {}
+        optional_array(std::array<typename Ty::element_type, Size>& arr) : val(arr.data()) {}
+        optional_array(const std::array<typename Ty::element_type, Size>& arr) : val(arr.data()) {}
+
+        pointer val;
+
+        pointer data() const { return val; }
+    };
+
+    template<class Ty, size_t Size>
+    struct optional_array<null_optional_type, Ty, Size>
+    {
+        using pointer = typename Ty::pointer;
+
+        optional_array(null_optional_type) {};
+        pointer data() const { return nullptr; }
+    };
+
+    template <class _It, class _Ty>
+    concept Span_compatible_optional_iterator = std::contiguous_iterator<_It>
+        && std::is_convertible_v<std::remove_reference_t<std::iter_reference_t<_It>>(*)[], span_element_t<_Ty>(*)[]>
+        || (is_optional_parameter<_Ty> && is_null_opt<_It>);
+
+    template <class OtherTy, size_t Size, class Ty>
+    concept Span_compatible_optional_array = std::is_bounded_array_v<OtherTy[Size]>
+        || (is_optional_parameter<Ty> && is_null_opt<Ty>);
+
+    template <class OtherTy, class Ty, size_t Size>
+    concept Span_compatible_optional_std_array = Is_std_array_v<OtherTy> && 
+        std::is_convertible_v<typename OtherTy::value_type(*)[], span_element_t<Ty>(*)[]> &&
+        std_array_size<OtherTy> == Size || 
+        (is_optional_parameter<Ty> && is_null_opt<Ty>);
+
+    template <class OtherTy, class Ty, size_t Size>
+    concept Span_compatible_optional_const_std_array = Is_std_array_v<OtherTy> && 
+        std::is_convertible_v<const typename OtherTy::value_type(*)[], span_element_t<Ty>(*)[]> &&
+        std_array_size<OtherTy> == Size || 
+        (is_optional_parameter<Ty> && is_null_opt<Ty>);
+
+    template<class First, class... Ty>
+        requires is_any_optional<Ty...>
+    class span_tuple<First, std::dynamic_extent, Ty...>  : private Extent_type<First, std::dynamic_extent, span_element_t<Ty>...>
+    {
+    private:
+        using base = Extent_type<First, std::dynamic_extent, span_element_t<Ty>...>;
+        using base::m_data;
+        using base::m_size;
+
+    public:
+        using element_type = std::tuple<First, span_element_t<Ty>...>;
+        using value_type = std::tuple<std::remove_cv_t<First>, std::remove_cv_t<span_element_t<Ty>>...>;
+        using pointer = std::tuple<First*, span_element_t<Ty>*...>;
+        using const_pointer = std::tuple<const First*, const span_element_t<Ty>*...>;
+        using reference = std::tuple<First&, span_element_t<Ty>&...>;
+        using const_reference = std::tuple<const First&, const span_element_t<Ty>&...>;
+        using size_type = size_t;
+        using difference_type = ptrdiff_t;
+        using iterator = span_tuple_iterator<First, span_element_t<Ty>...>;
+        using reverse_iterator = ::std::reverse_iterator<iterator>;
+
+        static constexpr size_type extent = std::dynamic_extent;
+
+    public:
+        constexpr span_tuple() noexcept = default;
+
+        template <Span_compatible_iterator<First> It, Span_compatible_optional_iterator<Ty>... OtherIt>
+        constexpr span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
+            : base(std::forward_as_tuple(std::to_address(FirstIt), std::to_address(optional_iterator<OtherIt, Ty>(otherIt))...), Count)
+        {
+        }
+
+        template <Span_compatible_iterator<First> _It, Span_compatible_sentinel<_It> _Sentinel, Span_compatible_optional_iterator<Ty>... OtherIt>
+        constexpr span_tuple(_It _First, _Sentinel _Last, OtherIt... otherIt) noexcept(noexcept(_Last - _First)) // strengthened
+            : base(std::forward_as_tuple(std::to_address(_First), std::to_address(optional_iterator<OtherIt, Ty>(otherIt))...), static_cast<size_type>(_Last - _First))
+        {
+
+        }
+
+        template<size_t Size, Span_compatible_optional_array<Size, Ty>... OtherTy>
+        span_tuple(First(&first)[Size], OtherTy&... Ty) :
+            base(std::forward_as_tuple(first, optional_array<OtherTy, Ty, Size>(Ty).data()...), Size)
+        {
+
+        }
+
+        template <class OtherFirst, size_t Size, Span_compatible_optional_std_array<Ty, Size>... OtherTy>
+            requires std::is_convertible_v<OtherFirst(*)[], First(*)[]>
+        span_tuple(std::array<OtherFirst, Size>& first, OtherTy&... elm) :
+            base(std::forward_as_tuple(first.data(), optional_array<OtherTy, Ty, Size>(elm).data()...), std::size(first))
+        {
+
+        }
+
+        template <class OtherFirst, size_t Size, Span_compatible_optional_const_std_array<Ty, Size>... OtherTy>
+            requires std::is_convertible_v<const OtherFirst(*)[], First(*)[]>
+        span_tuple(const std::array<OtherFirst, Size>& first, const OtherTy&... elm) :
+            base(std::forward_as_tuple(first.data(), optional_array<OtherTy, Ty, Size>(elm).data()...), std::size(first))
+        {
+
+        }
+
+        template <class OtherFirst, class... OtherTy, size_t OtherExtent>
+            requires std::is_convertible_v<OtherFirst(*)[], First(*)[]> &&
+            (std::is_convertible_v<OtherTy(*)[], Ty(*)[]> && ...)
+        constexpr explicit(OtherExtent == std::dynamic_extent) span_tuple(const span_tuple<OtherFirst, OtherExtent, OtherTy...>& other) noexcept
+            : base(other.data(), other.size())
+        {
+
+        }
+
+        //template <Span_compatible_range<First> _Rng, Span_compatible_range<Ty>... OtherRng>
+        //constexpr span_tuple(_Rng&& _Range, OtherRng&&... OtherRange)
+        //    : base(std::forward_as_tuple(::std::ranges::data(_Range), ::std::ranges::data(OtherRange)...), static_cast<size_type>(::std::ranges::size(_Range)))
+        //{
+
+        //}
+
+    public:
+        constexpr pointer data() const noexcept { return m_data; }
+
+        template<size_t Index>
+        constexpr std::tuple_element_t<Index, pointer> data() const noexcept
+        {
+            return get<Index>(m_data);
+        }
+
+        template<class Index>
+        constexpr Index* data() const noexcept
+        {
+            return get<Index*>(m_data);
+        }
+
+        constexpr size_t size() const noexcept { return m_size; }
+
+        template<size_t Index>
+        constexpr size_t size() const noexcept 
+        { 
+            return (std::get<Index>(m_data) == nullptr) ? 0 : m_size;
+        }
+
+        template<class Index>
+        constexpr size_t size() const noexcept
+        {
+            return (std::get<Index>(m_data) == nullptr) ? 0 : m_size;
+        }
+
+        template<size_t Index>
+        constexpr size_t size_bytes() const noexcept { return (std::get<Index>(m_data) == nullptr) ? 0 : sizeof(std::tuple_element_t<Index, value_type>) * m_size; }
+
+        template<class Index>
+            requires std::same_as<Index, First> || (std::same_as<Index, span_element_t<Ty>> || ...)
+        constexpr size_t size_bytes() const noexcept { return (std::get<Index>(m_data) == nullptr) ? 0 : sizeof(Index) * m_size; }
+
+        constexpr bool empty() const noexcept { return m_size == 0; }
+
+        template<size_t Index>
+        constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr; }
+
+        template<class Index>     
+        constexpr bool empty() const noexcept { return std::get<Index>(m_data) == nullptr; }
+
+        template<size_t Index, class First, size_t Extent, class... Ty>
+        friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
+
+        template<class Index, class First, size_t Extent, class... Ty>
+        friend constexpr auto get(span_tuple<First, Extent, Ty...> span);
+    };
 
     template<class First, size_t Extent>
     class span_tuple<First, Extent>;
