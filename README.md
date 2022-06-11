@@ -5,7 +5,7 @@ The API works like a mix of [std::span](https://en.cppreference.com/w/cpp/contai
 
 xk::span_tuple assumes that they are all of size Extent, if Extent == std::dynamic_extent, then they assume that all spans are sized N or 0, determined by the first tuple element of the span
 
-Support for optional span parameters exists by tagging the type with xk::optional. This is only supported with span_tuples of dynamic_extent and the first element cannot be optional as they are used to determine the size of the span.
+Support for optional span parameters exists by tagging the type with xk::optional. This is only supported with span_tuples of dynamic_extent and the first element cannot be optional as they are used to determine the size of the span. Spans with optionals have a much more restricted API and is encouraged to decompose them to individual std::spans
 ```c++
 // Working Examples
 xk::span_tuple<int, std::dynamic_extent, xk::optional<float>, double>;
