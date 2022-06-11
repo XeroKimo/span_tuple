@@ -212,7 +212,7 @@ namespace xk
 
         template <Span_compatible_iterator<First> It, Span_compatible_iterator<Ty>... OtherIt>
         constexpr explicit(Extent != std::dynamic_extent) span_tuple(It FirstIt, size_type Count, OtherIt... otherIt) noexcept // strengthened
-            : base(std::forward_as_tuple(std::to_address(FirstIt + Count), std::to_address(otherIt + Count)...), Count) 
+            : base(std::forward_as_tuple(std::to_address(FirstIt), std::to_address(otherIt)...), Count) 
         {
             if constexpr(Extent != std::dynamic_extent) 
             {
