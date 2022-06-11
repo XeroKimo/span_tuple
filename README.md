@@ -3,6 +3,21 @@ An extention to span. If span's intent is to be a non-owning range of one array-
 
 The API works like a mix of [std::span](https://en.cppreference.com/w/cpp/container/span) and [std::tuple](https://en.cppreference.com/w/cpp/utility/tuple), all constructors and the interface mirrors std::span, but since there are multiple types, we can turn them into individual spans using get like std::tuples.
 
+xk::span_tuple assumes that they are all of size Extent, if Extent == std::dynamic_extent, then they assume that all spans are sized N or 0, determined by the first tuple element of the span
+
+Support for optional span parameters exists by tagging the type with xk::optional. This is only supported with span_tuples of dynamic_extent and the first element cannot be optional as they are used to determine the size of the span.
+```c++
+// Working Examples
+xk::span_tuple<int, std::dynamic_extent, xk::optional<float>, double>;
+xk::span_tuple<int, std::dynamic_extent, double, xk::optional<float>>;
+
+// Incorrect Examples
+xk::span_tuple<xk::optional<int>, std::dynamic_extent, float>;  //first element cannot be optional as they determine the actual size of the span
+xk::span_tuple<int, 6, xk::optional<int>>;  //static sized spans cannot have optional as their assumptions are the same with std::span, static sized spans assumes to always be pointing an contiugous array of elements of the given size
+```
+All tuple elements of the span are assumed to have sized N or 0 determined by the first tuple element of the span. Optional elements can be sized 0 despite being a N sized tuple, but they can still only either be N or 0.
+
+
 See the [wiki](https://github.com/XeroKimo/span_tuple/wiki) for more info 
 # Requires
 - C++20
