@@ -1,7 +1,6 @@
 #pragma once
-#include <array>
+#include <stdexcept>
 #include <tuple>
-#include <type_traits>
 
 #if __has_cpp_attribute(nodiscard)
 #define XK_ARRAY_TUPLE_NODISCARD [[nodiscard]]
@@ -211,7 +210,7 @@ namespace xk
         {
             if(Size <= _Pos) 
             {
-                //_Xran();
+                throw std::out_of_range("Index is out of range");
             }
 
             return m_arrays[_Pos];
@@ -221,8 +220,7 @@ namespace xk
         {
             if(Size <= _Pos) 
             {
-
-                //_Xran();
+                throw std::out_of_range("Index is out of range");
             }
 
             return m_arrays[_Pos];
