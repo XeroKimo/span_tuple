@@ -1,4 +1,5 @@
 #include "span_tuple.h"
+#include "array_tuple.h"
 #include <array>
 #include <iostream>
 
@@ -20,9 +21,6 @@ int main()
 
     xk::span_tuple<int, std::dynamic_extent, float> span4(&ar[1], 2, a2.data());
     xk::span_tuple<int, std::dynamic_extent, float> span5(a1.begin(), a1.end(), a2.begin());
-
-    xk::span_tuple<int, std::dynamic_extent, float> r6;
-    r6.back();
 
     float& f2= span.back<1>();
 
@@ -69,4 +67,26 @@ int main()
     xk::span_tuple<int, std::dynamic_extent, float> subspan4 = span.first(3);
     xk::span_tuple<int, std::dynamic_extent, float> subspan5 = span.last(3);
     xk::span_tuple<int, std::dynamic_extent, float> subspan6 = subspan4.subspan(1);
+
+
+    xk::array_tuple<4, int, float> arrTup;
+    xk::array_tuple<4, int, float> arrTup3;
+    arrTup[0] = std::tuple{ 5, 3.f };
+
+    for(auto tup : arrTup)
+    {
+        tup = std::tuple{ 5, 3.f };
+    }
+
+    arrTup3.swap(arrTup);
+
+    for(auto [i, f] : arrTup)
+    {
+        std::cout << i << " " << f << "\n";
+    }
+    const xk::array_tuple<4, int, float>& arrTup2 = arrTup3;
+    for(auto [i, f] : arrTup2)
+    {
+        std::cout << i << " " << f << "\n";
+    }
 }
